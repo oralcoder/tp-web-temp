@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, setDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import ScreenShare from './ScreenShare';
 
 const ChatPanel = ({ isOpen, onClose, currentUser }) => {
   const [conversations, setConversations] = useState([]);
@@ -10,6 +11,7 @@ const ChatPanel = ({ isOpen, onClose, currentUser }) => {
   const [showConversationList, setShowConversationList] = useState(true);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newChatName, setNewChatName] = useState('');
+  const [showScreenShare, setShowScreenShare] = useState(false);
 
   // 대화 목록 실시간 로드
   useEffect(() => {
@@ -128,14 +130,27 @@ const ChatPanel = ({ isOpen, onClose, currentUser }) => {
             {selectedConversation ? selectedConversation.name : '메시지'}
           </h3>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-blue-700 rounded transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          {selectedConversation && (
+            <button
+              onClick={() => setShowScreenShare(true)}
+              className="p-1 hover:bg-blue-700 rounded transition-colors"
+              title="화면 공유"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-blue-700 rounded transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* 대화 목록 */}
@@ -312,6 +327,15 @@ const ChatPanel = ({ isOpen, onClose, currentUser }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 화면 공유 모달 */}
+      {showScreenShare && selectedConversation && (
+        <ScreenShare
+          conversationId={selectedConversation.id}
+          currentUser={currentUser}
+          onClose={() => setShowScreenShare(false)}
+        />
       )}
     </div>
   );
