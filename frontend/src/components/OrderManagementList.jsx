@@ -56,7 +56,7 @@ const OrderManagementList = () => {
       amount: 85000,
       receiptDate: '2025-10-30',
       requestCompany: '금오기공소',
-      status: '계산서 발행 대기',
+      status: '발행요청',
     },
     {
       id: 3,
@@ -68,7 +68,7 @@ const OrderManagementList = () => {
       amount: 80000,
       receiptDate: '2025-10-30',
       requestCompany: '금오기공소',
-      status: '계산서 발행 완료',
+      status: '요청완료',
     },
     {
       id: 4,
@@ -221,20 +221,51 @@ const OrderManagementList = () => {
     return startDate || endDate;
   };
 
-  const getStatusColor = (status) => {
+  const isClickableStatus = (status) => {
+    return status === '입고대기' || status === '정산대기' || status === '발행요청';
+  };
+
+  const getStatusButtonStyle = (status) => {
+    const isClickable = isClickableStatus(status);
+    
+    // 클릭 불가능한 상태 (납품대기, 요청완료) - 회색 배지
+    if (!isClickable) {
+      return {
+        className: 'bg-slate-100 text-slate-600 border-slate-200',
+        clickable: false
+      };
+    }
+    
+    // 클릭 가능한 상태 - 컬러 버튼
     switch (status) {
-      case '납품대기':
-        return 'text-yellow-600 bg-yellow-100 px-3 py-1 rounded';
       case '입고대기':
-        return 'text-orange-600 bg-orange-100 px-3 py-1 rounded';
+        return {
+          className: 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer shadow-sm',
+          clickable: true
+        };
       case '정산대기':
-        return 'text-gray-700 bg-gray-100 px-3 py-1 rounded';
-      case '계산서 발행 대기':
-        return 'text-blue-600 bg-blue-100 px-3 py-1 rounded';
-      case '계산서 발행 완료':
-        return 'text-green-600 bg-green-100 px-3 py-1 rounded';
+        return {
+          className: 'bg-sky-600 text-white hover:bg-sky-700 cursor-pointer shadow-sm',
+          clickable: true
+        };
+      case '발행요청':
+        return {
+          className: 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer shadow-sm',
+          clickable: true
+        };
       default:
-        return 'text-gray-700';
+        return {
+          className: 'bg-slate-100 text-slate-600 border-slate-200',
+          clickable: false
+        };
+    }
+  };
+
+  const handleStatusClick = (order) => {
+    const statusStyle = getStatusButtonStyle(order.status);
+    if (statusStyle.clickable) {
+      console.log('상태 버튼 클릭:', order.orderNumber, order.status);
+      // 여기에 클릭 시 수행할 로직 추가
     }
   };
 
@@ -502,8 +533,8 @@ const OrderManagementList = () => {
                             <option value="납품대기">납품대기</option>
                             <option value="입고대기">입고대기</option>
                             <option value="정산대기">정산대기</option>
-                            <option value="계산서 발행 대기">계산서 발행 대기</option>
-                            <option value="계산서 발행 완료">계산서 발행 완료</option>
+                            <option value="발행요청">발행요청</option>
+                            <option value="요청완료">요청완료</option>
                           </select>
                         </div>
 
@@ -618,9 +649,17 @@ const OrderManagementList = () => {
                         <td className="px-4 py-3 text-center">{order.receiptDate || '-'}</td>
                         <td className="px-4 py-3 text-center text-sm">{order.requestCompany}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`inline-block text-sm font-medium ${getStatusColor(order.status)}`}>
+                          <button
+                            onClick={() => handleStatusClick(order)}
+                            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                              getStatusButtonStyle(order.status).className
+                            } ${
+                              !isClickableStatus(order.status) ? 'cursor-default' : ''
+                            }`}
+                            disabled={!isClickableStatus(order.status)}
+                          >
                             {order.status}
-                          </span>
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -714,6 +753,7 @@ const OrderManagementList = () => {
                     <button
                       onClick={() => {
                         setShowYearPicker(!showYearPicker);
+                        setShowMonthPicker(true); // 월 선택을 기본으로
                       }}
                       className="px-4 py-2 text-lg font-semibold text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2"
                     >
@@ -726,13 +766,61 @@ const OrderManagementList = () => {
                     {/* 년월 선택 패널 */}
                     {showYearPicker && (
                       <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-50 p-4 w-80">
-                        {!showMonthPicker ? (
+                        {showMonthPicker ? (
+                          /* 월 그리드 선택 (기본 화면) */
+                          <div>
+                            <div className="flex items-center justify-between mb-3">
+                              <button
+                                onClick={() => setShowMonthPicker(false)}
+                                className="text-gray-600 hover:text-gray-900 flex items-center gap-1 text-sm font-medium"
+                              >
+                                {currentYear}년
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowYearPicker(false);
+                                  setShowMonthPicker(true);
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                              {monthNames.map((month, index) => (
+                                <button
+                                  key={index}
+                                  onClick={() => {
+                                    setCurrentMonth(index);
+                                    setShowYearPicker(false);
+                                    setShowMonthPicker(true);
+                                  }}
+                                  className={`py-3 px-4 text-sm rounded-lg transition-colors ${
+                                    index === currentMonth
+                                      ? 'bg-blue-600 text-white font-semibold'
+                                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                  }`}
+                                >
+                                  {month}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
                           /* 년도 그리드 선택 */
                           <div>
                             <div className="flex items-center justify-between mb-3">
                               <h3 className="text-sm font-semibold text-gray-700">년도 선택</h3>
                               <button
-                                onClick={() => setShowYearPicker(false)}
+                                onClick={() => {
+                                  setShowYearPicker(false);
+                                  setShowMonthPicker(true);
+                                }}
                                 className="text-gray-400 hover:text-gray-600"
                               >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -755,48 +843,6 @@ const OrderManagementList = () => {
                                   }`}
                                 >
                                   {year}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          /* 월 그리드 선택 */
-                          <div>
-                            <div className="flex items-center justify-between mb-3">
-                              <button
-                                onClick={() => setShowMonthPicker(false)}
-                                className="text-gray-600 hover:text-gray-900 flex items-center gap-1 text-sm font-medium"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                </svg>
-                                {currentYear}년
-                              </button>
-                              <button
-                                onClick={() => setShowYearPicker(false)}
-                                className="text-gray-400 hover:text-gray-600"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2">
-                              {monthNames.map((month, index) => (
-                                <button
-                                  key={index}
-                                  onClick={() => {
-                                    setCurrentMonth(index);
-                                    setShowYearPicker(false);
-                                    setShowMonthPicker(false);
-                                  }}
-                                  className={`py-3 px-4 text-sm rounded-lg transition-colors ${
-                                    index === currentMonth
-                                      ? 'bg-blue-600 text-white font-semibold'
-                                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                                  }`}
-                                >
-                                  {month}
                                 </button>
                               ))}
                             </div>
@@ -894,15 +940,15 @@ const OrderManagementList = () => {
                           <div
                             key={order.id}
                             className={`text-xs px-2 py-1 rounded cursor-pointer truncate ${
-                              order.status === '납품대기'
-                                ? 'bg-yellow-100 text-yellow-800'
+                              order.status === '납품대기' || order.status === '요청완료'
+                                ? 'bg-slate-100 text-slate-700'
                                 : order.status === '입고대기'
-                                ? 'bg-orange-100 text-orange-800'
+                                ? 'bg-indigo-100 text-indigo-800'
                                 : order.status === '정산대기'
-                                ? 'bg-gray-100 text-gray-800'
-                                : order.status === '계산서 발행 대기'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-green-100 text-green-800'
+                                ? 'bg-sky-100 text-sky-800'
+                                : order.status === '발행요청'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-slate-100 text-slate-700'
                             }`}
                             title={`[${order.status}] ${order.patientName} - ${order.orderNumber}`}
                           >

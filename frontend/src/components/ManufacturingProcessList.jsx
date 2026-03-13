@@ -15,6 +15,10 @@ const ManufacturingProcessList = () => {
   const [filters, setFilters] = useState({
     status: 'all', // 'all', '설계', '실계'
   });
+  
+  // 정렬 상태
+  const [sortField, setSortField] = useState(null); // 'patientName', 'requestDate', 'deliveryDate'
+  const [sortDirection, setSortDirection] = useState('asc'); // 'asc' or 'desc'
 
   // 샘플 데이터
   const allProcesses = [
@@ -117,7 +121,31 @@ const ManufacturingProcessList = () => {
     return true;
   });
 
-  const totalItems = filteredProcesses.length;
+  // 정렬 적용
+  const sortedProcesses = [...filteredProcesses].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    let aValue, bValue;
+    
+    if (sortField === 'patientName') {
+      aValue = a.patientName;
+      bValue = b.patientName;
+    } else if (sortField === 'requestDate') {
+      aValue = new Date(a.requestDate);
+      bValue = new Date(b.requestDate);
+    } else if (sortField === 'deliveryDate') {
+      aValue = new Date(a.deliveryDate);
+      bValue = new Date(b.deliveryDate);
+    }
+    
+    if (sortDirection === 'asc') {
+      return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+    } else {
+      return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+    }
+  });
+
+  const totalItems = sortedProcesses.length;
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -155,6 +183,43 @@ const ManufacturingProcessList = () => {
     });
     setCurrentPage(1);
   };
+  
+  // 정렬 핸들러
+  const handleSort = (field) => {
+    if (sortField === field) {
+      // 같은 필드 클릭 시 방향 전환
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // 다른 필드 클릭 시 해당 필드로 오름차순 정렬
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+  
+  // 정렬 아이콘 렌더링
+  const renderSortIcon = (field) => {
+    if (sortField !== field) {
+      return (
+        <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      );
+    }
+    
+    if (sortDirection === 'asc') {
+      return (
+        <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+        </svg>
+      );
+    } else {
+      return (
+        <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      );
+    }
+  };
 
   const clearDateRange = () => {
     setStartDate('');
@@ -172,18 +237,18 @@ const ManufacturingProcessList = () => {
     return startDate || endDate;
   };
 
-  const getStatusColor = (status) => {
+  const getStatusBadgeStyle = (status) => {
     switch (status) {
       case '설계':
-        return 'text-blue-600';
+        return 'bg-blue-100 text-blue-700 border-blue-200';
       case '검토':
-        return 'text-purple-600';
+        return 'bg-purple-100 text-purple-700 border-purple-200';
       case '확정':
-        return 'text-green-600';
+        return 'bg-green-100 text-green-700 border-green-200';
       case '제작':
-        return 'text-orange-600';
+        return 'bg-orange-100 text-orange-700 border-orange-200';
       default:
-        return 'text-gray-700';
+        return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
 
@@ -251,34 +316,37 @@ const ManufacturingProcessList = () => {
                   onChange={(e) => {
                     setEndDate(e.target.value);
                     setCurrentPage(1);
-                  }}
-                  className="text-sm focus:outline-none"
-                  placeholder="종료일"
-                />
-                {hasDateRange() && (
-                  <button
+                    }}
+                    className="text-sm focus:outline-none"
+                    placeholder="종료일"
+                  />
+                  {hasDateRange() && (
+                    <button
                     onClick={clearDateRange}
                     className="p-1 hover:bg-gray-100 rounded-full transition-colors"
                     type="button"
-                  >
+                    >
                     <svg className="w-4 h-4 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                  </button>
-                )}
-              </div>
+                    </button>
+                  )}
+                  </div>
 
               {/* 진행상태 필터 */}
+              { /* 레이블 추가 */ }
+              <label htmlFor="statusFilter" className="sr-only">진행상태 필터</label>
               <select
+                id="statusFilter" 
                 value={filters.status}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer h-[42px]"
               >
                 <option value="all">진행상태: 전체</option>
-                <option value="설계">진행상태: 설계</option>
-                <option value="검토">진행상태: 검토</option>
-                <option value="확정">진행상태: 확정</option>
-                <option value="제작">진행상태: 제작</option>
+                <option value="설계">설계</option>
+                <option value="검토">검토</option>
+                <option value="확정">확정</option>
+                <option value="제작">제작</option>
               </select>
 
               {/* 필터 초기화 버튼 */}
@@ -312,18 +380,42 @@ const ManufacturingProcessList = () => {
                 </th>
                 <th className="px-4 py-3 text-center text-sm font-medium">주문번호</th>
                 <th className="px-4 py-3 text-center text-sm font-medium">차트번호</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">환자명</th>
+                <th className="px-4 py-3 text-center text-sm font-medium">
+                  <button
+                    onClick={() => handleSort('patientName')}
+                    className="flex items-center justify-center gap-1 w-full hover:text-gray-200 transition-colors"
+                  >
+                    환자명
+                    {renderSortIcon('patientName')}
+                  </button>
+                </th>
                 <th className="px-4 py-3 text-center text-sm font-medium">항목</th>
                 <th className="px-4 py-3 text-center text-sm font-medium">재료</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">접수일</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">납품예정일</th>
+                <th className="px-4 py-3 text-center text-sm font-medium">
+                  <button
+                    onClick={() => handleSort('requestDate')}
+                    className="flex items-center justify-center gap-1 w-full hover:text-gray-200 transition-colors"
+                  >
+                    접수일
+                    {renderSortIcon('requestDate')}
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-center text-sm font-medium">
+                  <button
+                    onClick={() => handleSort('deliveryDate')}
+                    className="flex items-center justify-center gap-1 w-full hover:text-gray-200 transition-colors"
+                  >
+                    납품예정일
+                    {renderSortIcon('deliveryDate')}
+                  </button>
+                </th>
                 <th className="px-4 py-3 text-center text-sm font-medium">접수기업</th>
                 <th className="px-4 py-3 text-center text-sm font-medium">진행상태</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredProcesses.length > 0 ? (
-                filteredProcesses.map((process) => (
+              {sortedProcesses.length > 0 ? (
+                sortedProcesses.map((process) => (
                   <tr key={process.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <input type="checkbox" className="w-4 h-4" />
@@ -340,8 +432,10 @@ const ManufacturingProcessList = () => {
                     <td className="px-4 py-3 text-center">{process.requestDate}</td>
                     <td className="px-4 py-3 text-center">{process.deliveryDate}</td>
                     <td className="px-4 py-3 text-center text-sm">{process.requestType}</td>
-                    <td className={`px-4 py-3 text-center font-medium ${getStatusColor(process.status)}`}>
-                      {process.status}
+                    <td className="px-4 py-3 text-center">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeStyle(process.status)}`}>
+                        {process.status}
+                      </span>
                     </td>
                   </tr>
                 ))
